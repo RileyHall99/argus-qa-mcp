@@ -1,0 +1,11 @@
+node_modules/
+dist/
+screenshots/
+recordings/
+*.tgz
+
+# Test suite and its tooling are kept local, not published to the repo.
+test/
+test-results/
+tsconfig.test.json
+.github/

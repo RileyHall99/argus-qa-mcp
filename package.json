@@ -1,0 +1,52 @@
+{
+  "name": "argus-qa-mcp",
+  "version": "0.1.0",
+  "description": "MCP server that lets AI agents QA-test web apps with Playwright: assertions, network mocking, review recordings (video + trace + report) and safety guards that block live payments.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "argus-qa-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "typecheck:test": "tsc --noEmit -p tsconfig.test.json",
+    "test": "npm run build && npm run test:unit && npm run test:e2e",
+    "test:unit": "tsx --test test/guards.test.ts",
+    "test:e2e": "tsx test/run.ts",
+    "test-site": "tsx test/server.ts",
+    "install-browser": "playwright install chromium",
+    "prepublishOnly": "npm run typecheck && npm test"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "playwright",
+    "qa",
+    "testing",
+    "e2e",
+    "browser-automation",
+    "claude",
+    "ai-agents"
+  ],
+  "author": "Riley Hall",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "playwright": "^1.64.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
