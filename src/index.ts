@@ -11,29 +11,35 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { BrowserManager } from "./browser.js";
+import { explainError, type ErrorExplanation } from "./errors.js";
 import { tools, type Tool } from "./tools.js";
-
-const SERVER_NAME = "argus-qa-mcp";
-const SERVER_VERSION = "0.1.0";
+import { SERVER_NAME, SERVER_VERSION } from "./version.js";
 
 function log(message: string): void {
   console.error(`[argus] ${message}`);
 }
 
-/** Turns any thrown value into a readable message for the model. */
-function describeError(error: unknown): string {
+/** Full message of any thrown value, without the ANSI colors Playwright adds. */
+function errorMessage(error: unknown): string {
   if (error instanceof z.ZodError) {
-    return `Invalid arguments:\n${z.prettifyError(error)}`;
+    return `Invalid arguments: ${z.prettifyError(error)}`;
   }
-  if (error instanceof Error) {
-    // Playwright errors include a multi-line call log; the first lines are the useful part.
-    // Strip ANSI color codes Playwright adds to its call log.
-    const lines = stripVTControlCharacters(error.message)
-      .split("\n")
-      .filter((line) => line.trim() !== "");
-    return lines.slice(0, 8).join("\n");
+  return stripVTControlCharacters(error instanceof Error ? error.message : String(error)).trim();
+}
+
+/**
+ * Formats a failure for the model: plain-language headline, explanation and
+ * suggestion first, then the start of Playwright's call log for reference.
+ */
+function formatError(toolName: string, explained: ErrorExplanation, message: string): string {
+  const lines = [`${toolName} failed: ${explained.title}`, explained.explanation];
+  if (explained.suggestion) lines.push(`Suggestion: ${explained.suggestion}`);
+  // The raw message adds nothing for single-line errors, which the explanation already restates.
+  if (message.includes("\n") && explained.title !== "Assertion failed") {
+    const details = message.split("\n").filter((line) => line.trim() !== "").slice(0, 8);
+    lines.push("", "Details:", ...details);
   }
-  return String(error);
+  return lines.join("\n");
 }
 
 /**
@@ -43,42 +49,61 @@ function describeError(error: unknown): string {
 async function routeToolCall(tool: Tool, args: unknown, browser: BrowserManager): Promise<CallToolResult> {
   const started = Date.now();
   let result: CallToolResult;
+  let explained: ErrorExplanation | undefined;
   try {
     // While recording, group this call's Playwright actions under the tool name in the trace.
     result = await browser.traceStep(tool.name, () => tool.run(args, browser));
     log(`${tool.name} ok (${Date.now() - started}ms)`);
   } catch (error) {
-    const message = describeError(error);
-    log(`${tool.name} failed (${Date.now() - started}ms): ${message.split("\n")[0]}`);
+    const message = errorMessage(error);
+    explained = explainError(message);
+    log(`${tool.name} failed (${Date.now() - started}ms): ${explained.title}: ${explained.explanation}`);
     result = {
       isError: true,
-      content: [{ type: "text", text: `${tool.name} failed: ${message}` }],
+      content: [{ type: "text", text: formatError(tool.name, explained, message) }],
     };
   }
-  logToRecording(browser, tool, args, result, started);
+  await logToRecording(browser, tool, args, result, started, explained);
   return result;
 }
 
-/** Appends the call to the active recording's action log (text output only, no image data). */
-function logToRecording(
+/** Failures that are about the request rather than the page; a screenshot would show nothing useful. */
+const NON_PAGE_ERRORS = new Set(["Invalid request", "Invalid arguments", "Browser not available"]);
+
+/**
+ * Appends the call to the active recording's action log (text output only,
+ * no image data). A failed call also gets a screenshot of the page as it
+ * was when it failed, for the report.
+ */
+async function logToRecording(
   browser: BrowserManager,
   tool: Tool,
   args: unknown,
   result: CallToolResult,
   started: number,
-): void {
+  error: ErrorExplanation | undefined,
+): Promise<void> {
   const recording = browser.activeRecording;
   if (!recording) return;
+  // Taken before the screenshot so the video timestamp points at the failure, not after it.
+  const finished = Date.now();
+  const failureScreenshot = error && !NON_PAGE_ERRORS.has(error.title) ? await browser.captureFailureScreenshot() : undefined;
   const textOutput = result.content
     .flatMap((part) => (part.type === "text" ? [part.text] : []))
     .join("\n");
+  const pageUrl = browser.currentUrl;
+  const pageTitle = pageUrl ? await browser.currentTitle() : undefined;
   recording.logAction({
     tool: tool.name,
     args: args ?? {},
     ok: result.isError !== true,
     summary: textOutput.length > 600 ? `${textOutput.slice(0, 600)}…` : textOutput,
     startedAt: started,
-    durationMs: Date.now() - started,
+    durationMs: finished - started,
+    ...(error ? { error } : {}),
+    ...(pageUrl ? { pageUrl } : {}),
+    ...(pageTitle ? { pageTitle } : {}),
+    ...(failureScreenshot ? { failureScreenshot } : {}),
   });
 }
 
@@ -114,8 +139,8 @@ async function main(): Promise<void> {
   process.stdin.on("close", () => void shutdown("stdin closed"));
 
   // Last-resort guards: log instead of letting the process die mid-session.
-  process.on("unhandledRejection", (reason) => log(`Unhandled rejection: ${describeError(reason)}`));
-  process.on("uncaughtException", (error) => log(`Uncaught exception: ${describeError(error)}`));
+  process.on("unhandledRejection", (reason) => log(`Unhandled rejection: ${errorMessage(reason)}`));
+  process.on("uncaughtException", (error) => log(`Uncaught exception: ${errorMessage(error)}`));
 
   await server.connect(new StdioServerTransport());
   log(
@@ -125,6 +150,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  log(`Fatal startup error: ${describeError(error)}`);
+  log(`Fatal startup error: ${errorMessage(error)}`);
   process.exit(1);
 });

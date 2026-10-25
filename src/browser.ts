@@ -35,7 +35,8 @@ import {
   livePaymentBlockReason,
   sameSite,
 } from "./guards.js";
-import { Recording, type RecordingSummary } from "./recorder.js";
+import { ReportDelivery, deliveryConfigFromEnv, type DeliveryStatus } from "./delivery.js";
+import { Recording, type AgentSuggestion, type RecordingSummary } from "./recorder.js";
 
 type StorageState = Awaited<ReturnType<BrowserContext["storageState"]>>;
 
@@ -107,6 +108,13 @@ const NAVIGATION_GRACE_MS = 750;
 
 const VIEWPORT = { width: 1280, height: 800 };
 
+/** Fields blacked out in failure screenshots (passwords and payment-card inputs). */
+const SENSITIVE_FIELDS =
+  'input[type="password"], [autocomplete^="cc-"], input[name*="card" i], input[name*="cvc" i], input[name*="cvv" i], input[name*="csc" i]';
+
+/** A failure screenshot must never hold up the error response for long. */
+const FAILURE_SCREENSHOT_TIMEOUT_MS = 3000;
+
 /** Hard caps so a noisy page can't grow the buffers without bound. */
 const MAX_DIAGNOSTICS = 500;
 const MAX_NETWORK_ENTRIES = 1000;
@@ -169,6 +177,10 @@ export class BrowserManager {
 
   /** Active recording, if any; its options shape every new context. */
   private recording: Recording | undefined;
+  /** Most recently stopped recording; suggest_fix can still annotate its report. */
+  private lastRecording: Recording | undefined;
+  /** Emails reports and sends the "assessment finished" notification. */
+  private readonly delivery = new ReportDelivery(deliveryConfigFromEnv());
   /** ARGUS_RECORD auto-starts one recording per process, once. */
   private autoRecordPending = envFlag("ARGUS_RECORD", false);
 
@@ -493,7 +505,10 @@ export class BrowserManager {
   }
 
   private record(entry: Omit<PageDiagnostic, "timestamp">): void {
-    this.diagnostics.push({ ...entry, timestamp: new Date().toISOString() });
+    const diagnostic = { ...entry, timestamp: new Date().toISOString() };
+    this.diagnostics.push(diagnostic);
+    // Recordings keep every page error, even if the agent never asks for them.
+    this.recording?.addPageError(diagnostic, this.currentUrl);
     if (this.diagnostics.length > MAX_DIAGNOSTICS) {
       this.diagnostics.splice(0, this.diagnostics.length - MAX_DIAGNOSTICS);
     }
@@ -788,6 +803,54 @@ export class BrowserManager {
   }
 
   /**
+   * Adds the agent's suggested fix for a failed step to the active recording,
+   * or to the most recently stopped one (whose report is then rewritten).
+   */
+  async suggestFix(
+    step: number,
+    suggestion: Omit<AgentSuggestion, "addedAt">,
+  ): Promise<{ recording: string; stopped: boolean; withoutFix: number[]; report: string; email?: string }> {
+    const target = this.recording ?? this.lastRecording;
+    if (!target) throw new Error("No recording to annotate. Start one with start_recording; failures recorded there can then take a suggested fix.");
+    const result = await target.addSuggestion(step, suggestion);
+    const stopped = target !== this.recording;
+    const email = stopped ? await this.delivery.suggestionAdded(target, result.withoutFix) : undefined;
+    return { recording: target.name, stopped, ...result, ...(email ? { email } : {}) };
+  }
+
+  /** URL of the active page, or undefined when no page is open. */
+  get currentUrl(): string | undefined {
+    return this.page && !this.page.isClosed() ? this.page.url() : undefined;
+  }
+
+  /** Title of the active page, or undefined when there is none or it can't be read (e.g. mid-navigation). */
+  async currentTitle(): Promise<string | undefined> {
+    if (!this.page || this.page.isClosed()) return undefined;
+    try {
+      return (await this.page.title()).trim() || undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  /**
+   * Viewport screenshot of the page as it is right now, for the report's
+   * failure evidence. Password and card fields (in every frame) are blacked
+   * out. Never throws: a crashed or hung page just yields no screenshot.
+   */
+  async captureFailureScreenshot(): Promise<Buffer | undefined> {
+    const page = this.page;
+    if (!page || page.isClosed()) return undefined;
+    try {
+      const mask = page.frames().map((frame) => frame.locator(SENSITIVE_FIELDS));
+      return await page.screenshot({ type: "png", timeout: FAILURE_SCREENSHOT_TIMEOUT_MS, mask, maskColor: "#000" });
+    } catch (error) {
+      log(`Could not capture failure screenshot: ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`);
+      return undefined;
+    }
+  }
+
+  /**
    * Starts tracing (and optionally video) for everything that follows. With
    * video on, the context is rebuilt so the current page and cookies carry over
    * but in-memory page state (e.g. an unsaved SPA form) does not.
@@ -796,6 +859,8 @@ export class BrowserManager {
     if (this.recording) {
       throw new Error(`Already recording "${this.recording.name}"; call stop_recording first.`);
     }
+    // Fixes can no longer be added to the previous recording, so send any email waiting on them.
+    await this.delivery.flush();
     await this.getPage();
     this.recording = await Recording.create(this.recordingsDir, name, video, this.secrets);
     try {
@@ -813,7 +878,7 @@ export class BrowserManager {
   }
 
   /** Saves the trace, finalizes videos and writes the report. */
-  async stopRecording(options: { reopen: boolean } = { reopen: true }): Promise<RecordingSummary> {
+  async stopRecording(options: { reopen: boolean } = { reopen: true }): Promise<RecordingSummary & { delivery?: DeliveryStatus }> {
     const recording = this.recording;
     if (!recording) throw new Error("No recording in progress; call start_recording first.");
 
@@ -836,9 +901,11 @@ export class BrowserManager {
       }
     }
 
+    this.lastRecording = recording;
     const summary = await recording.finalize(traceSaved);
     log(`Recording saved: ${summary.report}`);
-    return summary;
+    const delivery = await this.delivery.recordingStopped(recording, summary, recording.stepsWithoutFix());
+    return delivery ? { ...summary, delivery } : summary;
   }
 
   /**
@@ -862,6 +929,8 @@ export class BrowserManager {
         log(`Could not finalize recording: ${String(error)}`),
       );
     }
+    // No agent is left to add fixes, so send waiting emails now.
+    await this.delivery.flush();
     const browser = this.browser;
     this.browser = undefined;
     this.context = undefined;

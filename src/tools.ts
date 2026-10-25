@@ -76,6 +76,12 @@ const frame = z
       "or a list for nested iframes, outermost first. Not needed with aria-ref selectors.",
   );
 
+const label = z
+  .string()
+  .max(120)
+  .optional()
+  .describe('Name for this check in the test report, e.g. "Login shows welcome message"');
+
 const timeout = (ms: number) =>
   z.number().int().positive().max(120_000).default(ms).describe("Timeout in milliseconds");
 
@@ -338,20 +344,21 @@ const assertText = defineTool({
     text: z.string().min(1).describe("Expected text"),
     selector: selector.optional(),
     exact: z.boolean().default(false).describe("Require the whole text to match instead of a substring"),
+    label,
     frame,
     timeout: timeout(5000),
   },
   annotations: { readOnlyHint: true, openWorldHint: false },
-  async handler({ text: expected, selector: target, exact, frame: framePath, timeout: ms }, browser) {
+  async handler({ text: expected, selector: target, exact, label: name, frame: framePath, timeout: ms }, browser) {
     const where = target ? `in "${target}"` : "on the page";
     const result = await browser.assertText(expected, target, framePath, exact, ms);
     if (!result.passed) {
       throw new AssertionFailed(
-        `expected ${exact ? "exact " : ""}text "${expected}" ${where}` +
+        `${name ? `"${name}": ` : ""}expected ${exact ? "exact " : ""}text "${expected}" ${where}, but it was not found within ${ms} ms.` +
           (result.actual !== undefined ? `\nActual text ${where}:\n${result.actual}` : ""),
       );
     }
-    return text(`PASS: text "${expected}" is visible ${where}`);
+    return text(`PASS: ${name ? `${name}: ` : ""}text "${expected}" is visible ${where}`);
   },
 });
 
@@ -364,14 +371,20 @@ const assertVisible = defineTool({
   inputSchema: {
     selector,
     visible: z.boolean().default(true).describe("false asserts the element is hidden or absent"),
+    label,
     frame,
     timeout: timeout(5000),
   },
   annotations: { readOnlyHint: true, openWorldHint: false },
-  async handler({ selector: target, visible, frame: framePath, timeout: ms }, browser) {
+  async handler({ selector: target, visible, label: name, frame: framePath, timeout: ms }, browser) {
     const ok = await browser.assertVisible(target, framePath, visible, ms);
-    if (!ok) throw new AssertionFailed(`expected "${target}" to be ${visible ? "visible" : "hidden"}`);
-    return text(`PASS: "${target}" is ${visible ? "visible" : "hidden"}`);
+    if (!ok) {
+      throw new AssertionFailed(
+        `${name ? `"${name}": ` : ""}expected "${target}" to be ${visible ? "visible" : "hidden"}, but it ` +
+          `${visible ? "did not appear" : "was still visible"} within ${ms} ms.`,
+      );
+    }
+    return text(`PASS: ${name ? `${name}: ` : ""}"${target}" is ${visible ? "visible" : "hidden"}`);
   },
 });
 
@@ -460,11 +473,44 @@ const stopRecording = defineTool({
   title: "Stop recording",
   description:
     "Stop the active recording and save its trace.zip, video, screenshots, actions.json and an " +
-    "HTML report. Returns the file paths, assertion results and the command to open the trace viewer.",
+    "HTML report. Returns the overall verdict, the failed checks and errored steps with explanations, " +
+    "the number of website errors, the file paths and the command to open the trace viewer. " +
+    "If anything failed, follow up with suggest_fix for each failed step. When email delivery is configured, " +
+    "the report is emailed to the configured recipients once every failure has a suggested fix (see delivery in the result).",
   inputSchema: {},
   annotations: { readOnlyHint: false, openWorldHint: false },
   async handler(_args, browser) {
     return json(await browser.stopRecording());
+  },
+});
+
+const suggestFix = defineTool({
+  name: "suggest_fix",
+  title: "Suggest a fix",
+  description:
+    "Add your suggested fix for a failed step to the recording's report, shown in the \"AI agent's suggested fix\" column. " +
+    "Use the step numbers from stop_recording (failedChecks / toolErrors) or from failed tool calls during the recording. " +
+    "Diagnose the actual cause from the evidence (error explanation, actual page text, screenshot, console and network errors) " +
+    "and give a concrete fix: name the selector, file, endpoint or setting to change. Say whether the fix belongs in the app " +
+    "(a real bug), the test (wrong selector or expectation) or the environment (server down, missing data). " +
+    "Works during a recording or after stop_recording; calling it again for a step replaces the earlier suggestion.",
+  inputSchema: {
+    step: z.number().int().positive().describe("Step number of the failed check or tool call"),
+    fix: z.string().min(1).max(2000).describe("The concrete fix to make"),
+    cause: z.string().max(1000).optional().describe("Your diagnosis of the root cause"),
+    target: z
+      .enum(["app", "test", "environment"])
+      .optional()
+      .describe("Where the fix belongs: app (bug in the site), test (the test is wrong) or environment"),
+  },
+  annotations: { readOnlyHint: false, openWorldHint: false },
+  async handler({ step, fix, cause, target }, browser) {
+    const result = await browser.suggestFix(step, { fix, ...(cause ? { cause } : {}), ...(target ? { target } : {}) });
+    const remaining = result.withoutFix.length
+      ? `Failures still without a suggested fix: steps ${result.withoutFix.join(", ")}.`
+      : "Every failure now has a suggested fix.";
+    const where = result.stopped ? `Report updated: ${result.report}` : "It will appear in the report when the recording is stopped.";
+    return text(`Added suggested fix for step ${step} in "${result.recording}". ${remaining}\n${where}${result.email ? `\n${result.email}` : ""}`);
   },
 });
 
@@ -487,4 +533,5 @@ export const tools: readonly Tool[] = [
   clearMocks,
   startRecording,
   stopRecording,
+  suggestFix,
 ];
