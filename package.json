@@ -36,6 +36,14 @@
   ],
   "author": "Riley Hall",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RileyHall99/argus-qa-mcp.git"
+  },
+  "homepage": "https://github.com/RileyHall99/argus-qa-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/RileyHall99/argus-qa-mcp/issues"
+  },
   "engines": {
     "node": ">=22"
   },
