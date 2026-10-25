@@ -18,9 +18,9 @@ const EYE_PATHS =
   '<path d="M3 16C7.5 8.6 24.5 8.6 29 16C24.5 23.4 7.5 23.4 3 16Z" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linejoin="round"/>' +
   '<circle cx="16" cy="16" r="5.6" fill="#F59E0B"/><circle cx="16" cy="16" r="2.4" fill="#0B0F19"/><circle cx="17.6" cy="14.4" r="1" fill="#F8FAFC"/>';
 
-export const ARGUS_LOGO = `<svg class="logo" viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">${EYE_PATHS}</svg>`;
+export const ARGUS_LOGO: string = `<svg class="logo" viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">${EYE_PATHS}</svg>`;
 
-export const ARGUS_FAVICON = `data:image/svg+xml,${encodeURIComponent(
+export const ARGUS_FAVICON: string = `data:image/svg+xml,${encodeURIComponent(
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="#0B0F19"/>${EYE_PATHS}</svg>`,
 )}`;
 
@@ -38,7 +38,7 @@ export function brandBar(verdict: { tone: string; label: string }): string {
 </header>`;
 }
 
-export const REPORT_CSS = `
+export const REPORT_CSS: string = `
   :root {
     color-scheme: light;
     --obsidian: #0B0F19; --alabaster: #F8FAFC; --amber: #F59E0B; --emerald: #10B981; --crimson: #EF4444;
@@ -184,7 +184,7 @@ export const REPORT_CSS = `
 const ARGUS_LOGO_PNG_BASE64 = "iVBORw0KGgoAAAANSUhEUgAAADgAAAA4CAYAAACohjseAAAFhUlEQVR4nOxYa2wUVRQ+d7bQ7kyDMQZoERMECqJBASWhiTGRaFAqPlCRhMpjW2JMwCg2ahN+EOsjGjSSlF+lLViqWI1RXEyQ6A8Tm/omKsYUCAZ16UMxSmd2Sztz+Ga3XXZn785uHwSmmS/dzsy95/Xd57lXoQkOhSY4fIJeh0/Q6/AJeh0+Qa/DJ+h1+AS9Dp+g11FAlwB6i1pKJs0gi0rxOYMEnhZdG39PIIKm/YuYzsTf8WMhIsWb9C4aZwgaB3ATTTWEugokVuHzLhKimEYBZjoniD9jEmFtUA+LJ+hvGiNGTVBvUpfgcd/Q7zaYkttC1BleeMhz/JktBFuRvsEvjN4No3eP0igwIoLcRpMNXa1kFs9C8cYc0gkCcS9Z3AyTdyWatHYM/3aiZ1vRswOUJ/ImaDQFn8LQqYVKiasgs4FgjmOolZFQVMoHzH3QOQmO82A/mEPWnrcva1XGbsoDOQn2NWjTsSC0wfkd2WRsQnh8CmuHhMmTSRFhGg0svp8VcR5vK9FAFQhvTlafTF9izq8p3qx3u5l0Jag3qvei194FuaskHk4hiHqFrYNF1f0n4kWtdLURU49huJXSaMAcUdlYKKrprP0Zayycb5FSgRi2wOb1meL0Hxr/UczPI9lMZiXY16RtQOVeSRQ/4N+LWsj4WKJzADqPyeydH2Tq7Epsu/NmBqlw9oNQ+J24p91pfx9sb3TqG43Bh7HYbEfIi5x1CpuVwapYq8yvlGBfo/YCeu1Vh2NdMG8PhqK7UMcZOs1aiUjsaxlo+24SPf9BIen9CYLvtOyhFfesiL9bX6wmjnye4oYtdZJRKtZTj9MO7yAlel3wafRoHXpUTVVCRFtl8zIjk4k2FVU6ydlzTDGthWpV9C0ZuSEskhUe+LqAtrQGk+RsLCsvvygw65F0BSEU3dSWyGyJHWQhhjcDbN6CqE6mKuGvHr28xqmTRtBoCM40KbDbQe5nzdKXBTfHTpELhMXLZOV14cKMspqaWjp9+k/qaP+K6GhdppIlb6xh2HNeJaMcsf2WpiaUBnskpZalEbQCyjaM2SnJAizJ2oC+fHjSu0JQBsGe/4l6+wIZoh9+dJAW31pOFQ+spe6uSKYpIW+sNJkQ9cLnnSDZezEEmoJF75lUOddkG5O6jy4PivIR0gK6hRlzzk0mjSAWkZ1okX+S30RlxiT1MO+jaygH4CgjlZqGsTB3qplV54aSwbhMPrac4Ldpmj6gYXsQs5NlTGeRZe1KlUsjiFXIHi/rHO6WGINqR7S5aBa5wSJpUC89FMuq8srq/hHZGkZsb+EcxNSOpeXmtAqF1g5xSClyoDikH0ZTPDmU7CYgxFyLlV+wSm1FqXRrCQRMaVDLF5hUvy5KWqGVLLPf7bLby+S9KwLcISu3fSOGbaYZ+Ck9y2F0HK2XbfhZN3qcFqpR3SBx8z2G8utYrtucNdg/30OrrpHZS9voSyyaXJDV9ftaSM+wYW8BWBNqZRv9ELkWmTH3VK1ZDUG7UVo5nKoVWOGiDf2d8aKxp2pn1CLjJrGO/rU/c6VqNhQyHw+GYvuzmcyZbIPkUrZEC3pmPmUP7ARa99CYk22TK7hAWNhTV8LWStdkm+hXbCcbtU3Gt24m8z8uYeyjNZ8D0enukhyF9044n8ekBPOxLciKWiyOw3ZZzuMScRemyGt2VkV52R4BkgdeS9QgmAU5pPN0kZ9c/MBL9AYSj/2X5MDrhL5HXQztxJWFoKUux/b0V0H5X1kw2cMvjGdYqzZ+pFFgfC+dGGSZ7h7TpZPgI/FLpwH9k8t66eSG+LXhAK4KBZWA8My0a8PEaSSCZyR+bcj0B967r+hrwysZ/tW91+ET9Dp8gl6HT9Dr8Al6HT5Br8Mn6HVMeIIXAAAA//9DBvvoAAAABklEQVQDAGcsJqA0zDucAAAAAElFTkSuQmCC";
 
 /** Content-ID the email body uses to show the attached logo. */
-export const ARGUS_LOGO_PNG_CID = "argus-logo@argus-qa";
+export const ARGUS_LOGO_PNG_CID: string = "argus-logo@argus-qa";
 
 export function argusLogoPng(): Buffer {
   return Buffer.from(ARGUS_LOGO_PNG_BASE64, "base64");

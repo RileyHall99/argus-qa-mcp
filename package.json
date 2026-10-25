@@ -21,6 +21,7 @@
     "test:e2e": "tsx test/run.ts",
     "test-site": "tsx test/server.ts",
     "install-browser": "playwright install chromium",
+    "prepare": "tsc",
     "prepublishOnly": "npm run typecheck && npm test"
   },
   "keywords": [
