@@ -9,7 +9,7 @@ Argus is a [Model Context Protocol](https://modelcontextprotocol.io) server that
 - **Network mocking**: simulate API errors, payment declines, outages and slow responses without touching your backend.
 - **Safety guards**: refuses to enter card details on pages using a *live* payment environment, blocks live payment API traffic, optionally restricts which sites the agent may visit, and masks passwords and card numbers in recordings.
 
-<!-- TODO: add a demo GIF of a recorded run and its report here -->
+![Demo: an AI agent runs a checkout test through Argus, gets a report with the failure explained and a suggested fix, and the report is emailed to the client](docs/demo.gif)
 
 ## Quick start
 

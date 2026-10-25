@@ -111,6 +111,11 @@ export function deliveryConfigFromEnv(env: NodeJS.ProcessEnv = process.env): Del
   return config;
 }
 
+/** "step 4" / "steps 4, 9". */
+function stepList(steps: number[]): string {
+  return `step${steps.length === 1 ? "" : "s"} ${steps.join(", ")}`;
+}
+
 function plural(n: number, noun: string): string {
   return `${n} ${noun}${n === 1 ? "" : "s"}`;
 }
@@ -129,6 +134,20 @@ function outcome(summary: RecordingSummary): string {
   return [failed ? `${failed} of ${passed + failed} checks failed` : "", summary.toolErrors.length ? `${plural(summary.toolErrors.length, "step")} errored` : ""]
     .filter(Boolean)
     .join(", ");
+}
+
+/**
+ * A failure's explanation shortened for the email body: the page's full text
+ * (from "Actual text on the page:") is cut to a few lines, since the attached
+ * report has it all.
+ */
+function brief(why: string): string {
+  const lines = why.split("\n");
+  const actual = lines.findIndex((l) => l.startsWith("Actual text"));
+  const kept = actual === -1 ? lines : [...lines.slice(0, actual + 1), ...lines.slice(actual + 1).filter((l) => l.trim()).slice(0, 3)];
+  let text = kept.join("\n");
+  if (text.length > 500) text = `${text.slice(0, 499)}…`;
+  return text.length < why.length ? `${text}\n… (full text in the attached report)` : text;
 }
 
 function siteLabel(summary: RecordingSummary): string {
@@ -171,7 +190,7 @@ export class ReportDelivery {
         this.pending.set(recording, { timer, done: undefined });
         status.email =
           `The report will be emailed to ${email.to.join(", ")} once every failure has a suggested fix ` +
-          `(call suggest_fix for steps ${withoutFix.join(", ")}), or in ${Math.round(email.waitMs / 1000)} s regardless.`;
+          `(call suggest_fix for ${stepList(withoutFix)}), or in ${Math.round(email.waitMs / 1000)} s regardless.`;
       }
     } else if (this.config.emailProblems.length) {
       status.email = `Not emailed: ${this.config.emailProblems.join(" ")}`;
@@ -183,7 +202,7 @@ export class ReportDelivery {
   /** Called after each suggest_fix; sends a waiting email once nothing is left to fix. */
   async suggestionAdded(recording: Recording, withoutFix: number[]): Promise<string | undefined> {
     if (!this.pending.has(recording)) return undefined;
-    if (withoutFix.length > 0) return `The report will be emailed once steps ${withoutFix.join(", ")} also have a suggested fix.`;
+    if (withoutFix.length > 0) return `The report will be emailed once ${stepList(withoutFix)} also ${withoutFix.length === 1 ? "has" : "have"} a suggested fix.`;
     return this.flushOne(recording);
   }
 
@@ -318,7 +337,7 @@ function emailText(summary: RecordingSummary, attachedVideos: string[], skippedV
   if (failures.length) {
     lines.push("WHAT FAILED", "");
     for (const f of failures) {
-      lines.push(`Step ${f.step}: ${f.title}`, `  Why: ${oneLine(f.why, 400)}`);
+      lines.push(`Step ${f.step}: ${f.title}`, `  Why: ${brief(f.why).replace(/\n/g, "\n       ")}`);
       if (f.fix) lines.push(`  Suggested fix${f.fix.target ? ` (${f.fix.target})` : ""}: ${oneLine(f.fix.fix, 600)}`);
       lines.push("");
     }
@@ -340,7 +359,7 @@ function emailHtml(summary: RecordingSummary, attachedVideos: string[], skippedV
       (f) => `<tr><td style="padding:12px 0;border-top:1px solid #E2E8F0;">
   <div style="font-size:12px;color:#B91C1C;font-weight:700;">STEP ${f.step} &middot; ${escapeHtml(f.kind)}</div>
   <div style="font-size:15px;font-weight:700;margin:2px 0 4px;">${escapeHtml(oneLine(f.title, 200))}</div>
-  <div style="font-size:13px;color:#334155;white-space:pre-wrap;">${escapeHtml(f.why.length > 700 ? `${f.why.slice(0, 700)}…` : f.why)}</div>
+  <div style="font-size:13px;color:#334155;white-space:pre-wrap;">${escapeHtml(brief(f.why))}</div>
   ${
     f.fix
       ? `<div style="margin-top:8px;padding:8px 10px;background:#F5F3FF;border-left:3px solid #8B5CF6;font-size:13px;">

@@ -507,7 +507,7 @@ const suggestFix = defineTool({
   async handler({ step, fix, cause, target }, browser) {
     const result = await browser.suggestFix(step, { fix, ...(cause ? { cause } : {}), ...(target ? { target } : {}) });
     const remaining = result.withoutFix.length
-      ? `Failures still without a suggested fix: steps ${result.withoutFix.join(", ")}.`
+      ? `Failures still without a suggested fix: step${result.withoutFix.length === 1 ? "" : "s"} ${result.withoutFix.join(", ")}.`
       : "Every failure now has a suggested fix.";
     const where = result.stopped ? `Report updated: ${result.report}` : "It will appear in the report when the recording is stopped.";
     return text(`Added suggested fix for step ${step} in "${result.recording}". ${remaining}\n${where}${result.email ? `\n${result.email}` : ""}`);

@@ -564,7 +564,7 @@ export class Recording {
       ...(withoutFix.length
         ? {
             nextStep:
-              `Steps ${withoutFix.join(", ")} failed without a suggested fix. For each, call suggest_fix with its step number, ` +
+              `${withoutFix.length === 1 ? "Step" : "Steps"} ${withoutFix.join(", ")} failed without a suggested fix. For each, call suggest_fix with its step number, ` +
               "your diagnosis of the cause, and the concrete fix; it is added to the report.",
           }
         : {}),
