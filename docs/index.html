@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Argus QA: AI browser testing with reports your clients can read</title>
+<meta name="description" content="Argus is a free, open-source MCP server that lets Claude or any AI agent QA-test your website in a real browser, explains every failure in plain English, adds the agent's suggested fix, and emails the report to your client.">
+<meta name="theme-color" content="#0B0F19">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230B0F19'/%3E%3Cpath d='M3 16C7.5 8.6 24.5 8.6 29 16C24.5 23.4 7.5 23.4 3 16Z' fill='none' stroke='%23F59E0B' stroke-width='2.2'/%3E%3Ccircle cx='16' cy='16' r='5.6' fill='%23F59E0B'/%3E%3Ccircle cx='16' cy='16' r='2.4' fill='%230B0F19'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Argus QA: AI browser testing with reports your clients can read">
+<meta property="og:description" content="Your AI agent tests the site. Argus records it, explains every failure, and sends the report to your client. Free and open source.">
+<meta property="og:image" content="https://rileyhall99.github.io/argus-qa-mcp/og.png">
+<meta property="og:url" content="https://rileyhall99.github.io/argus-qa-mcp/">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  :root {
+    color-scheme: dark;
+    --obsidian: #0B0F19; --surface: #111725; --surface-2: #182032; --line: #253047;
+    --ink: #F8FAFC; --soft: #CBD5E1; --muted: #94A3B8;
+    --amber: #F59E0B; --amber-2: #FBBF24; --emerald: #10B981; --crimson: #EF4444; --violet: #A78BFA;
+    --sans: Inter, "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: "JetBrains Mono", "Fira Code", ui-monospace, "Cascadia Code", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--obsidian); color: var(--ink); font: 17px/1.6 var(--sans); -webkit-font-smoothing: antialiased; }
+  a { color: var(--amber-2); }
+  img { max-width: 100%; height: auto; display: block; }
+  code, pre { font-family: var(--mono); }
+  .wrap { max-width: 1120px; margin: 0 auto; padding-inline: max(20px, env(safe-area-inset-left, 0px)); }
+  :focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; border-radius: 4px; }
+
+  /* Nav */
+  header.nav { position: sticky; top: 0; z-index: 10; background: rgba(11, 15, 25, .86); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top, 0px); }
+  .nav .wrap { display: flex; align-items: center; gap: 1.4rem; height: 62px; }
+  .brand { display: flex; align-items: center; gap: .6rem; color: var(--ink); text-decoration: none; font-weight: 800; letter-spacing: .22em; font-size: 1.05rem; }
+  .brand svg { filter: drop-shadow(0 0 8px rgba(245, 158, 11, .5)); }
+  .nav nav { display: flex; gap: 1.4rem; margin-left: auto; align-items: center; }
+  .nav nav a { color: var(--soft); text-decoration: none; font-size: .93rem; font-weight: 500; }
+  .nav nav a:hover { color: var(--ink); }
+  .btn { display: inline-flex; align-items: center; gap: .5rem; padding: .7rem 1.15rem; border-radius: 10px; font-weight: 700; font-size: .97rem; text-decoration: none; border: 1px solid transparent; cursor: pointer; font-family: inherit; }
+  .btn.primary { background: var(--amber); color: var(--obsidian); }
+  .btn.primary:hover { background: var(--amber-2); }
+  .btn.ghost { border-color: var(--line); color: var(--ink); background: var(--surface); }
+  .btn.ghost:hover { border-color: var(--amber); }
+  .nav .btn { padding: .45rem .9rem; font-size: .88rem; }
+
+  /* Hero */
+  .hero { position: relative; overflow: hidden; padding-block: 5.5rem 3rem; }
+  .hero::before { content: ""; position: absolute; inset: -30% -10% auto; height: 620px; background: radial-gradient(closest-side, rgba(245, 158, 11, .16), transparent); pointer-events: none; }
+  .eyebrow { display: inline-flex; align-items: center; gap: .5rem; font-size: .8rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--amber-2); background: rgba(245, 158, 11, .1); border: 1px solid rgba(245, 158, 11, .3); padding: .3rem .75rem; border-radius: 999px; }
+  h1 { font-size: clamp(2.3rem, 5.4vw, 4rem); line-height: 1.07; letter-spacing: -.025em; margin: 1.1rem 0 1.1rem; max-width: 15ch; font-weight: 800; }
+  h1 em { font-style: normal; color: var(--amber); }
+  .lede { font-size: clamp(1.05rem, 1.9vw, 1.25rem); color: var(--soft); max-width: 58ch; margin: 0 0 2rem; }
+  .cta { display: flex; flex-wrap: wrap; gap: .8rem; align-items: center; }
+  .install { display: flex; align-items: center; gap: .6rem; margin-top: 1.6rem; background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--amber); border-radius: 10px; padding: .75rem .75rem .75rem 1rem; max-width: 720px; }
+  .install code { flex: 1; min-width: 0; font-size: .92rem; overflow-x: auto; white-space: nowrap; color: var(--ink); }
+  .install code::before { content: "$ "; color: var(--amber); }
+  .copy { flex: none; font: 600 .8rem var(--sans); color: var(--soft); background: var(--surface-2); border: 1px solid var(--line); border-radius: 7px; padding: .35rem .7rem; cursor: pointer; }
+  .copy:hover { color: var(--ink); border-color: var(--amber); }
+  .small { font-size: .86rem; color: var(--muted); }
+  .demo { margin-top: 3.2rem; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 30px 80px -30px rgba(0, 0, 0, .8), 0 0 0 1px rgba(245, 158, 11, .08); background: #000; }
+  .demo img { width: 100%; aspect-ratio: 960 / 576; }
+
+  /* Sections */
+  section { padding-block: 4.5rem; }
+  section + section { border-top: 1px solid var(--line); }
+  .kicker { font-size: .8rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--amber-2); margin: 0 0 .6rem; }
+  h2 { font-size: clamp(1.75rem, 3.4vw, 2.5rem); line-height: 1.15; letter-spacing: -.02em; margin: 0 0 1rem; max-width: 24ch; }
+  .sub { color: var(--soft); max-width: 62ch; margin: 0 0 2.4rem; }
+
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; counter-reset: step; }
+  .step { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 1.3rem 1.25rem; }
+  .step::before { counter-increment: step; content: counter(step); display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--amber); color: var(--obsidian); font-weight: 800; margin-bottom: .9rem; }
+  .step h3 { margin: 0 0 .4rem; font-size: 1.06rem; }
+  .step p { margin: 0; color: var(--soft); font-size: .95rem; }
+
+  .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+  .feature { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 1.4rem 1.3rem; }
+  .feature .icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: rgba(245, 158, 11, .12); color: var(--amber); margin-bottom: .9rem; }
+  .feature h3 { margin: 0 0 .4rem; font-size: 1.06rem; }
+  .feature p { margin: 0; color: var(--soft); font-size: .95rem; }
+  .feature code { font-size: .84em; color: var(--amber-2); }
+
+  .split { display: grid; grid-template-columns: 1fr 1.25fr; gap: 3rem; align-items: center; }
+  .checks { list-style: none; padding: 0; margin: 0; display: grid; gap: .9rem; }
+  .checks li { display: flex; gap: .75rem; color: var(--soft); }
+  .checks li::before { content: ""; flex: none; width: 20px; height: 20px; margin-top: .2rem; border-radius: 50%; background: var(--emerald) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 10.5l3 3 6-7' fill='none' stroke='%230B0F19' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 20px no-repeat; }
+  .checks strong { color: var(--ink); }
+  .shot { border-radius: 12px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 24px 60px -24px rgba(0, 0, 0, .8); background: #F8FAFC; }
+  .tags { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.4rem; }
+  .tag { font-size: .78rem; font-weight: 700; padding: .2rem .6rem; border-radius: 6px; border: 1px solid; }
+  .tag.app { color: #FCA5A5; border-color: rgba(239, 68, 68, .5); background: rgba(239, 68, 68, .1); }
+  .tag.test { color: #C4B5FD; border-color: rgba(167, 139, 250, .5); background: rgba(139, 92, 246, .12); }
+  .tag.env { color: var(--amber-2); border-color: rgba(245, 158, 11, .5); background: rgba(245, 158, 11, .1); }
+
+  .guards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+  .guard { display: flex; gap: 1rem; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 1.3rem; }
+  .guard .icon { flex: none; width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: rgba(16, 185, 129, .12); color: var(--emerald); }
+  .guard h3 { margin: 0 0 .3rem; font-size: 1.03rem; }
+  .guard p { margin: 0; color: var(--soft); font-size: .94rem; }
+
+  .tabs { display: flex; gap: .4rem; margin-bottom: -1px; flex-wrap: wrap; }
+  .tab { font: 600 .9rem var(--sans); color: var(--muted); background: transparent; border: 1px solid transparent; border-bottom: 0; padding: .6rem 1rem; border-radius: 10px 10px 0 0; cursor: pointer; }
+  .tab[aria-selected="true"] { color: var(--ink); background: var(--surface); border-color: var(--line); }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 0 12px 12px 12px; padding: 1.3rem; }
+  .panel p { margin: 0 0 .8rem; color: var(--soft); font-size: .95rem; }
+  .code-wrap { position: relative; }
+  .code-wrap pre { margin: 0 0 1rem; background: var(--obsidian); border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.1rem; overflow-x: auto; font-size: .88rem; line-height: 1.55; color: var(--ink); }
+  .code-wrap .copy { position: absolute; top: .6rem; right: .6rem; }
+  .c { color: var(--muted); } .k { color: var(--amber-2); } .s { color: #86EFAC; }
+
+  details.faq { border-bottom: 1px solid var(--line); }
+  details.faq summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 1rem; padding: 1.15rem 0; font-weight: 650; font-size: 1.05rem; }
+  details.faq summary::-webkit-details-marker { display: none; }
+  details.faq summary::after { content: "+"; color: var(--amber); font-size: 1.4rem; line-height: 1; transition: transform .2s; }
+  details.faq[open] summary::after { transform: rotate(45deg); }
+  details.faq p { margin: 0 0 1.2rem; color: var(--soft); max-width: 70ch; }
+
+  .closing { text-align: center; }
+  .closing h2, .closing .sub { margin-inline: auto; }
+  .closing .cta { justify-content: center; }
+  .note { margin: 2.4rem auto 0; max-width: 640px; background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; padding: 1.1rem 1.3rem; color: var(--soft); font-size: .95rem; }
+
+  footer { border-top: 1px solid var(--line); padding-block: 2rem calc(2rem + env(safe-area-inset-bottom, 0px)); color: var(--muted); font-size: .88rem; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 1rem 2rem; align-items: center; justify-content: space-between; }
+  footer a { color: var(--soft); text-decoration: none; } footer a:hover { color: var(--ink); }
+  footer nav { display: flex; gap: 1.4rem; flex-wrap: wrap; }
+
+  @media (max-width: 960px) {
+    .steps { grid-template-columns: repeat(2, 1fr); }
+    .features { grid-template-columns: repeat(2, 1fr); }
+    .split { grid-template-columns: 1fr; gap: 2rem; }
+  }
+  @media (max-width: 640px) {
+    .nav nav a:not(.btn) { display: none; }
+    .hero { padding-block: 3.5rem 2rem; }
+    .steps, .features, .guards { grid-template-columns: 1fr; }
+    section { padding-block: 3.4rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="Argus home">
+      <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><path d="M3 16C7.5 8.6 24.5 8.6 29 16C24.5 23.4 7.5 23.4 3 16Z" fill="none" stroke="#F59E0B" stroke-width="2.2" stroke-linejoin="round"/><circle cx="16" cy="16" r="5.6" fill="#F59E0B"/><circle cx="16" cy="16" r="2.4" fill="#0B0F19"/><circle cx="17.6" cy="14.4" r="1" fill="#F8FAFC"/></svg>
+      ARGUS
+    </a>
+    <nav aria-label="Main">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#safety">Safety</a>
+      <a href="#install">Install</a>
+      <a class="btn ghost" href="https://github.com/RileyHall99/argus-qa-mcp">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="hero">
+    <div class="wrap">
+      <span class="eyebrow">Free &amp; open source · MCP server</span>
+      <h1>AI QA testing your clients can <em>actually read</em>.</h1>
+      <p class="lede">Argus gives Claude, or any AI agent that speaks MCP, a real browser. It records every step, explains each failure in plain English with a screenshot and the moment in the video, adds the agent's suggested fix, and emails the finished report to your client.</p>
+      <div class="cta">
+        <a class="btn primary" href="#install">Get started</a>
+        <a class="btn ghost" href="https://github.com/RileyHall99/argus-qa-mcp">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          Star on GitHub
+        </a>
+      </div>
+      <div class="install">
+        <code id="cmd-hero">claude mcp add argus -- npx -y github:RileyHall99/argus-qa-mcp</code>
+        <button class="copy" type="button" data-copy="cmd-hero">Copy</button>
+      </div>
+      <p class="small">Works with Claude Code, Claude Desktop and any MCP client. Needs Node.js 22+.</p>
+      <div class="demo">
+        <img src="demo.gif" width="960" height="576" alt="Demo: an AI agent runs a checkout test through Argus. The tool calls appear beside the real browser, one check fails, the report explains why with a screenshot and the agent's suggested fix, and the report is emailed to the client.">
+      </div>
+    </div>
+  </div>
+
+  <section id="how">
+    <div class="wrap">
+      <p class="kicker">How it works</p>
+      <h2>Ask once. Get a report you can hand over.</h2>
+      <p class="sub">No test scripts to write. Describe the flow you want checked, and your agent drives Argus, the same way you'd brief a human tester.</p>
+      <div class="steps">
+        <div class="step"><h3>Ask your agent</h3><p>"Log in, place an order, and check customers see a friendly message if payments are down. Record it."</p></div>
+        <div class="step"><h3>Argus drives a real browser</h3><p>Clicks, typing, iframes and network mocking in Chromium, all recorded as video and a Playwright trace.</p></div>
+        <div class="step"><h3>Failures explained</h3><p>Every failed check gets a plain-English reason, a screenshot of the page and the time it happens in the video.</p></div>
+        <div class="step"><h3>Delivered to your client</h3><p>The agent adds its suggested fixes, then Argus emails the branded report and pings your Slack or webhook.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="report">
+    <div class="wrap split">
+      <div>
+        <p class="kicker">The report</p>
+        <h2>Not a log dump. A report people understand.</h2>
+        <ul class="checks">
+          <li><span><strong>A clear verdict</strong>: PASSED or FAILED, with every check listed by name.</span></li>
+          <li><span><strong>Why it failed</strong>, in plain language: expected vs. what was actually on the page.</span></li>
+          <li><span><strong>Evidence</strong>: a screenshot at the moment of failure, and a button that jumps the video to it.</span></li>
+          <li><span><strong>The agent's suggested fix</strong>, with its diagnosis of the cause.</span></li>
+          <li><span><strong>Errors from the website</strong>: console errors, crashes and failed requests, de-duplicated.</span></li>
+          <li><span><strong>Hide any section</strong> before you share it, then print or save as PDF.</span></li>
+        </ul>
+        <div class="tags"><span class="tag app">Fix in the app</span><span class="tag test">Fix in the test</span><span class="tag env">Fix the environment</span></div>
+      </div>
+      <div class="shot"><img src="report.png" width="1180" height="1101" loading="lazy" alt="An Argus report: the website tested, a FAILED verdict, stat tiles, and a test results table where the failed check shows why it failed, a screenshot, a video timestamp and the AI agent's suggested fix."></div>
+    </div>
+  </section>
+
+  <section id="features">
+    <div class="wrap">
+      <p class="kicker">Features</p>
+      <h2>Everything an agent needs to test like a pro.</h2>
+      <p class="sub">18 tools your agent can call, built on Playwright.</p>
+      <div class="features">
+        <div class="feature"><div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 8h18M8 21h8"/></svg></div><h3>A real browser</h3><p>Navigate, click, type, choose options, press keys and hover, including inside iframes, with a page snapshot so the agent knows what's there.</p></div>
+        <div class="feature"><div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2h9"/></svg></div><h3>Real pass/fail checks</h3><p><code>assert_text</code> and <code>assert_visible</code> return PASS or FAIL with the actual page text, and the report tallies them.</p></div>
+        <div class="feature"><div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg></div><h3>Plain-English errors</h3><p>"Element is covered by a cookie banner", not 40 lines of stack trace. Argus recognizes hidden, disabled and missing elements, timeouts and network errors.</p></div>
+        <div class="feature"><div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h10M4 17h7"/><circle cx="18" cy="16" r="3"/></svg></div><h3>Network mocking</h3><p>Simulate API errors, payment declines, outages and slow responses without touching your backend, so you can test the unhappy paths.</p></div>
+        <div class="feature"><div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg></div><h3>Recordings for review</h3><p>Video, a step-by-step Playwright trace, a JSON log and the HTML report, saved for every session.</p></div>
+        <div class="feature"><div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M22 6l-10 7L2 6"/></svg></div><h3>Email &amp; notifications</h3><p>When the run is done, the report goes to your client by email (any SMTP provider), with a ping to Slack, Discord, Teams or any webhook.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="safety">
+    <div class="wrap">
+      <p class="kicker">Safety</p>
+      <h2>Built to be pointed at real sites.</h2>
+      <p class="sub">Letting an AI loose in a browser should not keep you up at night. These guards are on by default.</p>
+      <div class="guards">
+        <div class="guard"><div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></div><div><h3>No real payments</h3><p>Refuses to type card details on pages using live Stripe keys, and blocks live Stripe, Adyen, Braintree and PayPal API calls. Test modes work normally.</p></div></div>
+        <div class="guard"><div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div><div><h3>Secrets masked</h3><p>Passwords and card numbers become <code>••••••</code> in reports and logs, and are blacked out in failure screenshots.</p></div></div>
+        <div class="guard"><div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/></svg></div><div><h3>Stay on your site</h3><p>An optional host allowlist stops the agent from opening pages anywhere else, whether by typing a URL or clicking a link.</p></div></div>
+        <div class="guard"><div class="icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg></div><div><h3>Reports go where you say</h3><p>Email recipients and webhooks come only from your configuration. No page can talk the agent into sending your report somewhere else.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="wrap">
+      <p class="kicker">Install</p>
+      <h2>Running in two minutes.</h2>
+      <p class="sub">Install the browser once, add Argus to your AI client, and ask for a test.</p>
+      <div class="tabs" role="tablist" aria-label="Client">
+        <button class="tab" role="tab" aria-selected="true" aria-controls="p-code" id="t-code">Claude Code</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="p-desktop" id="t-desktop">Claude Desktop</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="p-email" id="t-email">With email delivery</button>
+      </div>
+      <div class="panel" role="tabpanel" id="p-code" aria-labelledby="t-code">
+        <p>1. Install Chromium for Playwright (once):</p>
+        <div class="code-wrap"><pre id="c1">npx playwright install chromium</pre><button class="copy" type="button" data-copy="c1">Copy</button></div>
+        <p>2. Add Argus:</p>
+        <div class="code-wrap"><pre id="c2">claude mcp add argus -- npx -y github:RileyHall99/argus-qa-mcp</pre><button class="copy" type="button" data-copy="c2">Copy</button></div>
+        <p>3. Ask: <em>"Start a recording called "login flow", log in to staging.myapp.com as test@myapp.com, check the dashboard loads, then stop the recording and suggest fixes for anything that failed."</em></p>
+      </div>
+      <div class="panel" role="tabpanel" id="p-desktop" aria-labelledby="t-desktop" hidden>
+        <p>Add this to <code>claude_desktop_config.json</code> (on Windows in <code>%APPDATA%\Claude\</code>, on macOS in <code>~/Library/Application Support/Claude/</code>), then restart Claude Desktop:</p>
+        <div class="code-wrap"><pre id="c3">{
+  <span class="k">"mcpServers"</span>: {
+    <span class="k">"argus"</span>: {
+      <span class="k">"command"</span>: <span class="s">"npx"</span>,
+      <span class="k">"args"</span>: [<span class="s">"-y"</span>, <span class="s">"github:RileyHall99/argus-qa-mcp"</span>]
+    }
+  }
+}</pre><button class="copy" type="button" data-copy="c3">Copy</button></div>
+        <p>Run <code>npx playwright install chromium</code> once first, or set <code>ARGUS_BROWSER_CHANNEL=chrome</code> to use your installed Chrome.</p>
+      </div>
+      <div class="panel" role="tabpanel" id="p-email" aria-labelledby="t-email" hidden>
+        <p>Email the report to your client and get a ping when each run finishes. This works with any SMTP provider (SendGrid, Amazon SES, Microsoft 365, Gmail with an app password, …):</p>
+        <div class="code-wrap"><pre id="c4">claude mcp add argus \
+  -e ARGUS_EMAIL_TO=client@acme.com \
+  -e ARGUS_EMAIL_FROM=qa@yourco.com \
+  -e ARGUS_SMTP_HOST=smtp.sendgrid.net \
+  -e ARGUS_SMTP_USER=apikey -e ARGUS_SMTP_PASS=&lt;your-key&gt; \
+  -e ARGUS_NOTIFY_WEBHOOK=https://hooks.slack.com/services/… \
+  -- npx -y github:RileyHall99/argus-qa-mcp</pre><button class="copy" type="button" data-copy="c4">Copy</button></div>
+        <p>The email waits until the agent has suggested a fix for every failure (up to 3 minutes), so your client gets the fixes too. <a href="https://github.com/RileyHall99/argus-qa-mcp#configuration">All settings →</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <p class="kicker">FAQ</p>
+      <h2>Questions</h2>
+      <details class="faq"><summary>Is it really free?</summary><p>Yes. Argus is open source under the MIT license. It runs on your machine or server; there is no account, no usage limit and nothing phoning home.</p></details>
+      <details class="faq"><summary>Which AI agents does it work with?</summary><p>Any client that supports the Model Context Protocol (MCP), including Claude Code and Claude Desktop. Argus is the browser and the reporting; your agent does the thinking.</p></details>
+      <details class="faq"><summary>Do I need to write test scripts?</summary><p>No. You describe what to check in plain language and the agent decides which steps to take. Labelled checks ("Order is confirmed") make the report read like a test plan.</p></details>
+      <details class="faq"><summary>Can I run it on a server, not my laptop?</summary><p>Yes. Argus runs headless by default, and the email delivery and webhook exist for exactly that case: the client never needs access to the machine the agent runs on.</p></details>
+      <details class="faq"><summary>Is it safe to test a site that takes payments?</summary><p>Use a staging site in your payment provider's test mode. Argus blocks live Stripe, Adyen, Braintree and PayPal traffic and refuses to type card details on pages using live Stripe keys. It's a safety net, though, not a guarantee, and it can't see server-side charges. Recordings (video and trace) can contain what was typed, so treat them as sensitive.</p></details>
+      <details class="faq"><summary>What does the client receive?</summary><p>An email with the verdict and each failure explained, including the agent's suggested fix. Attached is a self-contained <code>report.html</code> that opens in any browser and, if it fits, the screen recording. The Playwright trace is never emailed.</p></details>
+    </div>
+  </section>
+
+  <section class="closing">
+    <div class="wrap">
+      <h2>Give your agent eyes. Give your client answers.</h2>
+      <p class="sub">Argus is new and built in the open. Try it, star it, and tell us what you'd want next.</p>
+      <div class="cta">
+        <a class="btn primary" href="#install">Install Argus</a>
+        <a class="btn ghost" href="https://github.com/RileyHall99/argus-qa-mcp">View on GitHub</a>
+      </div>
+      <div class="note"><strong>Running QA for clients?</strong> We're exploring hosted, shareable reports with run history and your own branding on them. If that would help your agency, <a href="https://github.com/RileyHall99/argus-qa-mcp/issues/new?title=Interested%20in%20hosted%20%2F%20white-label%20reports&amp;body=What%20we%20test%20for%20clients%3A%0A%0AWhat%20we%27d%20need%3A%0A">tell us what you need</a>.</div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Argus QA · MIT licensed · Built on Playwright and the Model Context Protocol</span>
+    <nav aria-label="Footer">
+      <a href="https://github.com/RileyHall99/argus-qa-mcp">GitHub</a>
+      <a href="https://github.com/RileyHall99/argus-qa-mcp#readme">Docs</a>
+      <a href="https://github.com/RileyHall99/argus-qa-mcp/issues">Issues</a>
+      <a href="https://github.com/RileyHall99/argus-qa-mcp/blob/main/LICENSE">License</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+  // Copy buttons
+  document.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-copy]");
+    if (!button) return;
+    const text = document.getElementById(button.dataset.copy).innerText.trim();
+    try {
+      await navigator.clipboard.writeText(text);
+      button.textContent = "Copied";
+    } catch {
+      button.textContent = "Select & copy";
+    }
+    setTimeout(() => (button.textContent = "Copy"), 1600);
+  });
+  // Install tabs
+  const tabs = [...document.querySelectorAll('[role="tab"]')];
+  for (const tab of tabs) {
+    tab.addEventListener("click", () => {
+      for (const t of tabs) {
+        const selected = t === tab;
+        t.setAttribute("aria-selected", String(selected));
+        document.getElementById(t.getAttribute("aria-controls")).hidden = !selected;
+      }
+    });
+  }
+</script>
+</body>
+</html>

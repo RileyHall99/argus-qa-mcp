@@ -2,6 +2,8 @@
 
 **Let Claude (or any MCP-capable AI agent) QA-test your web app, and leave evidence behind.**
 
+**Website:** https://rileyhall99.github.io/argus-qa-mcp/
+
 Argus is a [Model Context Protocol](https://modelcontextprotocol.io) server that gives an AI agent a real Chromium browser through Playwright, plus the things you need to trust its results:
 
 - **Recordings for review**: every session can produce a video, a Playwright trace (DOM snapshots, network and console for each step) and an HTML report of every action the agent took.
@@ -28,7 +30,7 @@ Or skip this and use your installed Google Chrome by setting `ARGUS_BROWSER_CHAN
 Claude Code:
 
 ```sh
-claude mcp add argus -- npx -y argus-qa-mcp
+claude mcp add argus -- npx -y github:RileyHall99/argus-qa-mcp
 ```
 
 Claude Desktop: add this to `claude_desktop_config.json` (on Windows `%APPDATA%\Claude\`, on macOS `~/Library/Application Support/Claude/`) and restart:
@@ -38,7 +40,7 @@ Claude Desktop: add this to `claude_desktop_config.json` (on Windows `%APPDATA%\
   "mcpServers": {
     "argus": {
       "command": "npx",
-      "args": ["-y", "argus-qa-mcp"]
+      "args": ["-y", "github:RileyHall99/argus-qa-mcp"]
     }
   }
 }
@@ -172,7 +174,7 @@ claude mcp add argus \
   -e ARGUS_SMTP_HOST=smtp.sendgrid.net -e ARGUS_SMTP_USER=apikey -e ARGUS_SMTP_PASS=SG.xxxx \
   -e ARGUS_EMAIL_FROM=qa@yourco.com \
   -e ARGUS_NOTIFY_WEBHOOK=https://hooks.slack.com/services/T000/B000/XXXX \
-  -- npx -y argus-qa-mcp
+  -- npx -y github:RileyHall99/argus-qa-mcp
 ```
 
 Starting a recording with video reloads the current page into a new browser context. Cookies, localStorage and the URL are kept; unsaved in-page state is not. Use `video: false` to record just the trace without a reload.
